@@ -43,6 +43,12 @@ const ApiProxyIface = '<node> \
 <method name="GetTodaysFacts"> \
   <arg direction="out" type="a(iiissisasii)" /> \
 </method> \
+<method name="GetFacts"> \
+  <arg direction="in"  type="u" name="start_time" /> \
+  <arg direction="in"  type="u" name="end_time" /> \
+  <arg direction="in"  type="s" name="search" /> \
+  <arg direction="out" type="a(iiissisasii)" /> \
+</method> \
 <method name="StopTracking"> \
   <arg direction="in"  type="v" name="end_time" /> \
 </method> \
@@ -341,6 +347,28 @@ HamsterExtension.prototype = {
         return true;
     },
 
+    _startOfWeek: function() {
+        let now = new Date();
+        let first = now.getDate() - now.getDay() + 1;
+        now.setDate(first);
+        now.setHours(0);
+        now.setMinutes(0);
+        now.setSeconds(0);
+        now.setMilliseconds(0);
+        return Math.floor(now.getTime() / 1000);
+    },
+
+    _endOfWeek: function() {
+        let now = new Date();
+        let last = now.getDate() - now.getDay() + 7;
+        now.setDate(last);
+        now.setHours(23);
+        now.setMinutes(59);
+        now.setSeconds(59);
+        now.setMilliseconds(0);
+        return Math.floor(now.getTime() / 1000);
+    },
+
     _refresh: function([response], err) {
         let facts = [];
 
@@ -450,6 +478,26 @@ HamsterExtension.prototype = {
         this.activityEntry.summaryLabel.set_text(label);
 
         this.isTimeDone(totalDay, 480, 'hamster-panel-box-daydone');
+        this._proxy.GetFactsRemote(this._startOfWeek(),
+                                   this._endOfWeek(),
+                                   "",
+                                   Lang.bind(this, this._refreshWeekStatus));
+    },
+
+    _refreshWeekStatus: function([response], err) {
+        let facts = [];
+
+        if (err) {
+            log(err);
+        } else if (response.length > 0) {
+            facts = Stuff.fromDbusFacts(response);
+        }
+
+        let totalWeek = 0;
+        for (var fact of facts) {
+            totalWeek += fact.delta;
+        }
+        this.isTimeDone(totalWeek, 2400, 'hamster-panel-box-weekdone');
     },
 
     isTimeDone: function(totalTime, timeLimit, styleClass) {

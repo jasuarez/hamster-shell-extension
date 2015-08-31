@@ -49,3 +49,8 @@
     spacing: 5px;
     color: yellow;
 }
+
+.hamster-panel-box-weekdone {
+    spacing: 5px;
+    color: green;
+}
