@@ -254,7 +254,7 @@ HamsterExtension.prototype = {
         this._settings = Convenience.getSettings();
 
 
-        this.panelContainer = new St.BoxLayout({style_class: "panel-box"});
+        this.panelContainer = new St.BoxLayout({style_class: "hamster-panel-box"});
         this.actor.add_actor(this.panelContainer);
         this.actor.add_style_class_name('panel-status-button');
 
@@ -441,13 +441,26 @@ HamsterExtension.prototype = {
         }
 
         let label = "";
+        let totalDay = 0;
         for (var category of categories) {
+            totalDay += byCategory[category];
             label += category + ": " + Stuff.formatDurationHours(byCategory[category]) +  ", ";
         }
         label = label.slice(0, label.length - 2); // strip trailing comma
         this.activityEntry.summaryLabel.set_text(label);
+
+        this.isTimeDone(totalDay, 480, 'hamster-panel-box-daydone');
     },
 
+    isTimeDone: function(totalTime, timeLimit, styleClass) {
+        if (totalTime >= timeLimit) {
+            this.panelContainer.add_style_class_name(styleClass);
+            return true;
+        } else {
+            this.panelContainer.remove_style_class_name(styleClass);
+            return false;
+        }
+    },
 
     updatePanelDisplay: function(fact) {
         // 0 = show label, 1 = show icon + duration, 2 = just icon

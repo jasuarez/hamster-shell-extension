@@ -41,6 +41,11 @@
     color: #fff;
 }
 
-.panel-box {
+.hamster-panel-box {
     spacing: 5px;
+}
+
+.hamster-panel-box-daydone {
+    spacing: 5px;
+    color: yellow;
 }
