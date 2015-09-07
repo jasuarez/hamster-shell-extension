@@ -360,7 +360,7 @@ HamsterExtension.prototype = {
 
     _endOfWeek: function() {
         let now = new Date();
-        let last = now.getDate() - now.getDay() + 7;
+        let last = now.getDate() + 6 - ((now.getDay() -1) % 7);
         now.setDate(last);
         now.setHours(23);
         now.setMinutes(59);
