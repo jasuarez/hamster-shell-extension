@@ -477,7 +477,7 @@ HamsterExtension.prototype = {
         label = label.slice(0, label.length - 2); // strip trailing comma
         this.activityEntry.summaryLabel.set_text(label);
 
-        this.isTimeDone(totalDay, 480, 'hamster-panel-box-daydone');
+        this.isTimeDone(totalDay, 8*60, 'hamster-panel-box-daydone');
         this._proxy.GetFactsRemote(this._startOfWeek(),
                                    this._endOfWeek(),
                                    "",
@@ -497,7 +497,7 @@ HamsterExtension.prototype = {
         for (var fact of facts) {
             totalWeek += fact.delta;
         }
-        this.isTimeDone(totalWeek, 2400, 'hamster-panel-box-weekdone');
+        this.isTimeDone(totalWeek, 40*60, 'hamster-panel-box-weekdone');
     },
 
     isTimeDone: function(totalTime, timeLimit, styleClass) {
