@@ -84,6 +84,9 @@ const WindowsProxyIface = '<node> \
 
 let WindowsProxy = Gio.DBusProxy.makeProxyWrapper(WindowsProxyIface);
 
+const HOURS_PER_DAY = 8
+const HOURS_PER_WEEK = HOURS_PER_DAY * 5
+
 
 
 /* a little box or something */
@@ -477,7 +480,7 @@ HamsterExtension.prototype = {
         label = label.slice(0, label.length - 2); // strip trailing comma
         this.activityEntry.summaryLabel.set_text(label);
 
-        this.isTimeDone(totalDay, 8*60, 'hamster-panel-box-daydone');
+        this.isTimeDone(totalDay, HOURS_PER_DAY * 60, 'hamster-panel-box-daydone');
         this._proxy.GetFactsRemote(this._startOfWeek(),
                                    this._endOfWeek(),
                                    "",
@@ -497,7 +500,7 @@ HamsterExtension.prototype = {
         for (var fact of facts) {
             totalWeek += fact.delta;
         }
-        this.isTimeDone(totalWeek, 40*60, 'hamster-panel-box-weekdone');
+        this.isTimeDone(totalWeek, HOURS_PER_WEEK * 60, 'hamster-panel-box-weekdone');
     },
 
     isTimeDone: function(totalTime, timeLimit, styleClass) {
