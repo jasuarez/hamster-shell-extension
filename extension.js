@@ -353,22 +353,22 @@ HamsterExtension.prototype = {
     _startOfWeek: function() {
         let now = new Date();
         let first = now.getDate() - now.getDay() + 1;
-        now.setDate(first);
-        now.setHours(0);
-        now.setMinutes(0);
-        now.setSeconds(0);
-        now.setMilliseconds(0);
+        now.setUTCDate(first);
+        now.setUTCHours(0);
+        now.setUTCMinutes(0);
+        now.setUTCSeconds(0);
+        now.setUTCMilliseconds(0);
         return Math.floor(now.getTime() / 1000);
     },
 
     _endOfWeek: function() {
         let now = new Date();
         let last = now.getDate() + 6 - ((now.getDay() -1) % 7);
-        now.setDate(last);
-        now.setHours(23);
-        now.setMinutes(59);
-        now.setSeconds(59);
-        now.setMilliseconds(0);
+        now.setUTCDate(last);
+        now.setUTCHours(23);
+        now.setUTCMinutes(59);
+        now.setUTCSeconds(59);
+        now.setUTCMilliseconds(0);
         return Math.floor(now.getTime() / 1000);
     },
 
