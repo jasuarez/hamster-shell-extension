@@ -47,10 +47,15 @@
 
 .hamster-panel-box-daydone {
     spacing: 5px;
-    color: orange;
+    color: blue;
 }
 
 .hamster-panel-box-weekdone {
     spacing: 5px;
     color: green;
+}
+
+.hamster-panel-box-daydoneweeknot {
+    spacing: 5px;
+    color: orange;
 }

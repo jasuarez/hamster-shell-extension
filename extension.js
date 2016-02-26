@@ -372,6 +372,15 @@ HamsterExtension.prototype = {
         return Math.floor(now.getTime() / 1000);
     },
 
+    _endOfToday: function() {
+        let now = new Date();
+        now.setUTCHours(23);
+        now.setUTCMinutes(59);
+        now.setUTCSeconds(59);
+        now.setUTCMilliseconds(0);
+        return Math.floor(now.getTime() / 1000);
+    },
+
     _refresh: function([response], err) {
         let facts = [];
 
@@ -481,6 +490,12 @@ HamsterExtension.prototype = {
         this.activityEntry.summaryLabel.set_text(label);
 
         this.isTimeDone(totalDay, HOURS_PER_DAY * 60, 'hamster-panel-box-daydone');
+        if (totalDay >= HOURS_PER_DAY * 60) {
+            this._proxy.GetFactsRemote(this._startOfWeek(),
+                                       this._endOfToday(),
+                                       "",
+                                       Lang.bind(this, this._refreshExpectedWeekStatus));
+        }
         this._proxy.GetFactsRemote(this._startOfWeek(),
                                    this._endOfWeek(),
                                    "",
@@ -501,6 +516,27 @@ HamsterExtension.prototype = {
             totalWeek += fact.delta;
         }
         this.isTimeDone(totalWeek, HOURS_PER_WEEK * 60, 'hamster-panel-box-weekdone');
+    },
+
+    _refreshExpectedWeekStatus: function([response], err) {
+        let facts = [];
+
+        if (err) {
+            log(err);
+        } else if (response.length > 0) {
+            facts = Stuff.fromDbusFacts(response);
+        }
+
+        let currentWeek = 0;
+        for (var fact of facts) {
+            currentWeek += fact.delta;
+        }
+        let weekOfDay = new Date().getDay();
+        // Set Sunday as 7
+        if (weekOfDay == 0) {
+            weekOfDay = 7;
+        }
+        this.isTimeDone(weekOfDay * HOURS_PER_DAY * 60, currentWeek, 'hamster-panel-box-daydoneweeknot');
     },
 
     isTimeDone: function(totalTime, timeLimit, styleClass) {
