@@ -121,9 +121,8 @@ HamsterBox.prototype = {
         // autocomplete popup - couldn't spark it up just yet
         //this._popup = new PopupMenu.PopupComboMenu(this._textEntry);
 
-        label = new St.Label({style_class: 'hamster-box-label'});
-        label.set_text(_("Today's activities"));
-        box.add(label);
+        this.todayLabel = new St.Label({style_class: 'hamster-box-label'});
+        box.add(this.todayLabel);
 
         let scrollbox = new St.ScrollView({style_class: 'hamster-scrollbox'});
         this._scrollAdjustment = scrollbox.vscroll.adjustment;
@@ -488,6 +487,7 @@ HamsterExtension.prototype = {
         }
         label = label.slice(0, label.length - 2); // strip trailing comma
         this.activityEntry.summaryLabel.set_text(label);
+        this.activityEntry.todayLabel.set_text(_("Today's activities") + " (" + Stuff.formatDurationHours(totalDay) + ")");
 
         this.isTimeDone(totalDay, HOURS_PER_DAY * 60, 'hamster-panel-box-daydone');
         if (totalDay >= HOURS_PER_DAY * 60) {
