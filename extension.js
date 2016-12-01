@@ -249,15 +249,9 @@ HamsterExtension.prototype = {
         PanelMenu.Button.prototype._init.call(this, 0.0);
 
         this.extensionMeta = extensionMeta;
-        this._proxy = new ApiProxy(Gio.DBus.session, 'org.gnome.Hamster', '/org/gnome/Hamster');
-        this._proxy.connectSignal('FactsChanged',      Lang.bind(this, this.refresh));
-        this._proxy.connectSignal('ActivitiesChanged', Lang.bind(this, this.refreshActivities));
-        this._proxy.connectSignal('TagsChanged',       Lang.bind(this, this.refresh));
+        this._proxy = null;
 
-
-        this._windowsProxy = new WindowsProxy(Gio.DBus.session,
-                                              "org.gnome.Hamster.WindowServer",
-                                              "/org/gnome/Hamster/WindowServer");
+        this._windowsProxy = null;
 
         this._settings = Convenience.getSettings();
 
@@ -285,7 +279,7 @@ HamsterExtension.prototype = {
         let item = new HamsterBox();
         item.connect('activate', Lang.bind(this, this._onActivityEntry));
         this.activityEntry = item;
-        this.activityEntry.proxy = this._proxy; // lazy proxying
+        this.activityEntry.proxy = null; // lazy proxying
 
 
         this.menu.addMenuItem(item);
@@ -328,7 +322,7 @@ HamsterExtension.prototype = {
         this.facts = null;
         // refresh the label every 60 secs
         this.timeout = GLib.timeout_add_seconds(0, 60, Lang.bind(this, this.refresh));
-        this.refresh();
+        GLib.timeout_add_seconds(0, 5, Lang.bind(this, this.refreshOneShot));
     },
 
     show: function() {
@@ -342,6 +336,22 @@ HamsterExtension.prototype = {
     refreshActivities: function(proxy, sender) {
         this.activityEntry.autocompleteActivities = [];
         this.refresh();
+    },
+
+    refreshOneShot: function(proxy, sender) {
+        this._proxy = new ApiProxy(Gio.DBus.session, 'org.gnome.Hamster', '/org/gnome/Hamster');
+        this._proxy.connectSignal('FactsChanged',      Lang.bind(this, this.refresh));
+        this._proxy.connectSignal('ActivitiesChanged', Lang.bind(this, this.refreshActivities));
+        this._proxy.connectSignal('TagsChanged',       Lang.bind(this, this.refresh));
+
+        this.activityEntry.proxy = this._proxy; // lazy proxying
+
+        this._windowsProxy = new WindowsProxy(Gio.DBus.session,
+                                              "org.gnome.Hamster.WindowServer",
+                                              "/org/gnome/Hamster/WindowServer");
+
+        this._proxy.GetTodaysFactsRemote(Lang.bind(this, this._refresh));
+        return false;
     },
 
     refresh: function(proxy, sender) {
