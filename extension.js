@@ -84,8 +84,8 @@ const WindowsProxyIface = '<node> \
 
 let WindowsProxy = Gio.DBusProxy.makeProxyWrapper(WindowsProxyIface);
 
-const HOURS_PER_DAY = 8
-const HOURS_PER_WEEK = HOURS_PER_DAY * 5
+const MINUTES_PER_DAY = 480 //8 hours/day
+const MINUTES_PER_WEEK = MINUTES_PER_DAY * 5
 
 
 
@@ -499,8 +499,8 @@ HamsterExtension.prototype = {
         this.activityEntry.summaryLabel.set_text(label);
         this.activityEntry.todayLabel.set_text(_("Today's activities") + " (" + Stuff.formatDurationHours(totalDay) + ")");
 
-        this.isTimeDone(totalDay, HOURS_PER_DAY * 60, 'hamster-panel-box-daydone');
-        if (totalDay >= HOURS_PER_DAY * 60) {
+        this.isTimeDone(totalDay, MINUTES_PER_DAY, 'hamster-panel-box-daydone');
+        if (totalDay >= MINUTES_PER_DAY) {
             this._proxy.GetFactsRemote(this._startOfWeek(),
                                        this._endOfToday(),
                                        "",
@@ -525,7 +525,7 @@ HamsterExtension.prototype = {
         for (var fact of facts) {
             totalWeek += fact.delta;
         }
-        this.isTimeDone(totalWeek, HOURS_PER_WEEK * 60, 'hamster-panel-box-weekdone');
+        this.isTimeDone(totalWeek, MINUTES_PER_WEEK, 'hamster-panel-box-weekdone');
     },
 
     _refreshExpectedWeekStatus: function([response], err) {
@@ -546,7 +546,7 @@ HamsterExtension.prototype = {
         if (weekOfDay == 0) {
             weekOfDay = 7;
         }
-        this.isTimeDone(weekOfDay * HOURS_PER_DAY * 60, currentWeek, 'hamster-panel-box-daydoneweeknot');
+        this.isTimeDone(weekOfDay * MINUTES_PER_DAY, currentWeek, 'hamster-panel-box-daydoneweeknot');
     },
 
     isTimeDone: function(totalTime, timeLimit, styleClass) {
