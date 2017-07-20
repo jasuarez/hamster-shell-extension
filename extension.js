@@ -400,13 +400,13 @@ HamsterExtension.prototype = {
         }
 
         this.currentActivity = null;
-        let fact = null;
+        let cfact = null;
         if (facts.length) {
-            fact = facts[facts.length - 1];
-            if (!fact.endTime)
-                this.currentActivity = fact;
+            cfact = facts[facts.length - 1];
+            if (!cfact.endTime)
+                this.currentActivity = cfact;
         }
-        this.updatePanelDisplay(fact);
+        this.updatePanelDisplay(cfact);
 
         let activities = this.activityEntry.activities;
         activities.destroy_all_children(); // remove previous entries
