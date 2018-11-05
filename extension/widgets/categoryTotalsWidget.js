@@ -59,9 +59,14 @@ var CategoryTotalsWidget = new Lang.Class({
             }
 
             let string = "";
-              for (let category of categories) {
+            let totalDay = 0;
+            for (let category of categories) {
+                totalDay += byCategory[category];
                 string += category + ": " + Stuff.formatDurationHours(byCategory[category]) +  ", ";
             }
+
+            // Add total of day
+            string += "TOTAL: " + Stuff.formatDurationHours(totalDay) + ", ";
 
             // strip trailing comma
             return string.slice(0, string.length - 2);
