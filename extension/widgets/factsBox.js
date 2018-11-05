@@ -88,7 +88,6 @@ var FactsBox = new Lang.Class({
     refresh: function(facts, ongoingFact) {
         this.todaysFactsWidget.refresh(facts, ongoingFact);
         this.summaryLabel.refresh(facts);
-
     },
 
     /**

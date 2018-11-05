@@ -59,9 +59,10 @@ var CategoryTotalsWidget = new Lang.Class({
             }
 
             let string = "";
-            for (let category of categories) {
+              for (let category of categories) {
                 string += category + ": " + Stuff.formatDurationHours(byCategory[category]) +  ", ";
             }
+
             // strip trailing comma
             return string.slice(0, string.length - 2);
         }
