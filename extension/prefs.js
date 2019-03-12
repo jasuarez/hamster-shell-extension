@@ -95,6 +95,18 @@ class HamsterSettingsWidget extends Gtk.VBox {
 
 
         label = new Gtk.Label({margin_top: 20});
+        label.set_markup("<b>Show when daily/weekly work is done.</b>");
+        label.set_alignment(0, 0.5);
+        this.add(label);
+
+        vbox = new Gtk.VBox({margin: 10});
+        this.add(vbox);
+        let sb = new Gtk.Switch();
+        vbox.add(sb);
+        this._settings.bind('enable-work-done', sb, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+
+        label = new Gtk.Label({margin_top: 20});
         label.set_markup("<b>Hours per day</b>");
         label.set_alignment(0, 0.5);
         this.add(label);
@@ -105,6 +117,7 @@ class HamsterSettingsWidget extends Gtk.VBox {
         spin.set_digits(2);
         vbox.add(spin);
         this._settings.bind('hours-per-day', spin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        sb.bind_property('active', spin, 'sensitive', GObject.BindingFlags.SYNC_CREATE);
 
 
         label = new Gtk.Label({margin_top: 20});
@@ -112,12 +125,12 @@ class HamsterSettingsWidget extends Gtk.VBox {
         label.set_alignment(0, 0.5);
         this.add(label);
 
-
         vbox = new Gtk.VBox({margin: 10});
         this.add(vbox);
         spin = Gtk.SpinButton.new_with_range(0.0, 7.0, 0.5);
         vbox.add(spin);
         this._settings.bind('days-per-week', spin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        sb.bind_property('active', spin, 'sensitive', GObject.BindingFlags.SYNC_CREATE);
 
 
         label = new Gtk.Label({margin_top: 20});

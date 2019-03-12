@@ -200,6 +200,7 @@ class PanelWidget extends PanelMenu.Button {
     // here.
     this._controller.apiProxy.GetTodaysFactsRemote(_refresh.bind(this));
 
+    if (this._settings.get_boolean("enable-work-done")) {
     this._controller.apiProxy.GetFactsRemote(this._startOfWeek(),
                                              this._endOfWeek(),
                                              "",
@@ -219,6 +220,7 @@ class PanelWidget extends PanelMenu.Button {
 
 	this.setWeekTimeDone(totalWeek);
     });
+    }
 
     return GLib.SOURCE_CONTINUE;
     }
