@@ -37,6 +37,7 @@ const FactsBox = Me.imports.widgets.factsBox.FactsBox;
 const Stuff = Me.imports.stuff;
 
 const HOURS_PER_DAY = 8;
+const DAYS_PER_WEEK = 5;
 
 /**
  * Class that defines the actual extension widget to be shown in the panel.
@@ -197,7 +198,52 @@ class PanelWidget extends PanelMenu.Button {
 		this.factsBox.refresh(facts, ongoingFact);
 	});
 
+    	this._controller.apiProxy.GetFactsRemote(this._startOfWeek(),
+        	                                 this._endOfWeek(),
+                	                         "",
+                                                 ([response], err) => {
+                let facts = [];
+
+                if (err) {
+                    log(err);
+                } else if (response.length > 0) {
+                    facts = Stuff.fromDbusFacts(response);
+                }
+
+                let totalWeek = 0;
+                for (var fact of facts) {
+                    totalWeek += fact.delta;
+                }
+
+                this.setWeekTimeDone(totalWeek);
+
+        });
+
+
+
     return GLib.SOURCE_CONTINUE;
+    }
+
+    /**
+     * Get begin of current week.
+     */
+    _startOfWeek() {
+        let now = new Date();
+        let first = now.getDate() - now.getDay() + 1;
+        now.setUTCDate(first);
+        now.setUTCHours(0, 0, 0, 0);
+        return Math.floor(now.getTime() / 1000);
+    }
+
+    /**
+     * Get end of current week.
+     */
+    _endOfWeek() {
+        let now = new Date();
+        let last = now.getDate() + 6 - ((now.getDay() - 1) % 7);
+        now.setUTCDate(last);
+        now.setUTCHours(23, 59, 59, 0);
+        return Math.floor(now.getTime() / 1000);
     }
 
     /**
@@ -233,6 +279,13 @@ class PanelWidget extends PanelMenu.Button {
      */
     setDayTimeDone(totalTime) {
         this.isTimeDone(totalTime, HOURS_PER_DAY * 60 * 60, 'panel-box-daydone');
+    }
+
+    /**
+     * Change style when week is complete.
+     */
+    setWeekTimeDone(totalTime) {
+        this.isTimeDone(totalTime, DAYS_PER_WEEK * HOURS_PER_DAY * 60 * 60, 'panel-box-weekdone');
     }
 
     /**
