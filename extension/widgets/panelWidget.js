@@ -195,6 +195,7 @@ class PanelWidget extends PanelMenu.Button {
 		this.factsBox.refresh(facts, ongoingFact);
 	});
 
+        if (this._settings.get_boolean("enable-work-done")) {
     	this._controller.apiProxy.GetFactsRemote(this._startOfWeek(),
         	                                 this._endOfWeek(),
                 	                         "",
@@ -215,6 +216,7 @@ class PanelWidget extends PanelMenu.Button {
                 this.setWeekTimeDone(totalWeek);
 
         });
+        }
 
 
 

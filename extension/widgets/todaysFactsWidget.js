@@ -26,6 +26,7 @@ const Clutter = imports.gi.Clutter;
 const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
 
+const ExtensionUtils = imports.misc.extensionUtils;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Stuff = Me.imports.stuff;
 
@@ -199,7 +200,10 @@ class TodaysFactsWidget extends St.ScrollView {
             }
             rowCount += 1;
         }
-        this._panelWidget.setDayTimeDone(getTotalDay(facts));
+	let settings = ExtensionUtils.getSettings();
+	if (settings.get_boolean("enable-work-done")) {
+            this._panelWidget.setDayTimeDone(getTotalDay(facts));
+	}
     }
 
     /**
