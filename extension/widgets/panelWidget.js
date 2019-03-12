@@ -36,6 +36,8 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const FactsBox = Me.imports.widgets.factsBox.FactsBox;
 const Stuff = Me.imports.stuff;
 
+const HOURS_PER_DAY = 8;
+
 /**
  * Class that defines the actual extension widget to be shown in the panel.
  *
@@ -98,6 +100,8 @@ class PanelWidget extends PanelMenu.Button {
 
         panelContainer.add(this.icon);
         panelContainer.add(this.panelLabel);
+
+        this._panelContainer = panelContainer;
 
         this.factsBox = new FactsBox(controller, this);
         this.menu.addMenuItem(this.factsBox);
@@ -214,6 +218,26 @@ class PanelWidget extends PanelMenu.Button {
         this.menu.toggle();
     }
 
+
+    /**
+     * Change style when time is complete.
+     */
+    isTimeDone(totalTime, timeLimit, styleClass) {
+        if (totalTime >= timeLimit) {
+            this._panelContainer.add_style_class_name(styleClass);
+            return true;
+        } else {
+            this._panelContainer.remove_style_class_name(styleClass);
+            return false;
+        }
+    }
+
+    /**
+     * Change style when day is complete.
+     */
+    setDayTimeDone(totalTime) {
+        this.isTimeDone(totalTime, HOURS_PER_DAY * 60 * 60, 'panel-box-daydone');
+    }
 
     /**
      * Update the rendering of the PanelWidget in the panel itself.
