@@ -36,9 +36,6 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const FactsBox = Me.imports.widgets.factsBox.FactsBox;
 const Stuff = Me.imports.stuff;
 
-const HOURS_PER_DAY = 8;
-const DAYS_PER_WEEK = 5;
-
 /**
  * Class that defines the actual extension widget to be shown in the panel.
  *
@@ -224,29 +221,6 @@ class PanelWidget extends PanelMenu.Button {
     return GLib.SOURCE_CONTINUE;
     }
 
-    _refreshExpectedWeekStatus([response], err) {
-        let facts = [];
-
-        if (err) {
-            log(err);
-        } else if (response.length > 0) {
-            facts = Stuff.fromDbusFacts(response);
-        }
-
-        let currentWeek = 0;
-        for (var fact of facts) {
-            currentWeek += fact.delta;
-        }
-
-        let weekOfDay = new Date().getDay();
-        // Set Sunday as 7
-        if (weekOfDay == 0) {
-            weekOfDay = 7;
-        }
-
-        this.isTimeDone(weekOfDay * HOURS_PER_DAY * 60 * 60, currentWeek, 'panel-box-daydoneweeknot');
-    }
-
     /**
      * Get begin of current week.
      */
@@ -310,8 +284,9 @@ class PanelWidget extends PanelMenu.Button {
      * Change style when day is complete.
      */
     setDayTimeDone(totalTime) {
-        this.isTimeDone(totalTime, HOURS_PER_DAY * 60 * 60, 'panel-box-daydone');
-        if (totalTime >= HOURS_PER_DAY * 60 * 60) {
+        const hoursPerDay = this._settings.get_double("hours-per-day");
+        this.isTimeDone(totalTime, hoursPerDay * 60 * 60, 'panel-box-daydone');
+        if (totalTime >= hoursPerDay * 60 * 60) {
             this._controller.apiProxy.GetFactsRemote(this._startOfWeek(),
                                                      this._endOfToday(),
                                                      "",
@@ -335,7 +310,8 @@ class PanelWidget extends PanelMenu.Button {
                        weekOfDay = 7;
                    }
 
-                   this.isTimeDone(weekOfDay * HOURS_PER_DAY * 60 * 60, currentWeek, 'panel-box-daydoneweeknot');
+                   const hoursPerDay = this._settings.get_double("hours-per-day");
+                   this.isTimeDone(weekOfDay * hoursPerDay * 60 * 60, currentWeek, 'panel-box-daydoneweeknot');
             });
         }
     }
@@ -344,7 +320,9 @@ class PanelWidget extends PanelMenu.Button {
      * Change style when week is complete.
      */
     setWeekTimeDone(totalTime) {
-        this.isTimeDone(totalTime, DAYS_PER_WEEK * HOURS_PER_DAY * 60 * 60, 'panel-box-weekdone');
+        const hoursPerDay = this._settings.get_double("hours-per-day");
+        const daysPerWeek = this._settings.get_double("days-per-week");
+        this.isTimeDone(totalTime, daysPerWeek * hoursPerDay * 60 * 60, 'panel-box-weekdone');
     }
 
     /**
