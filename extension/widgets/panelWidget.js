@@ -37,6 +37,7 @@ const FactsBox = Me.imports.widgets.factsBox.FactsBox;
 const Stuff = Me.imports.stuff;
 
 const HOURS_PER_DAY = 8;
+const DAYS_PER_WEEK = 5;
 
 /**
  * Class that defines the actual extension widget to be shown in the panel.
@@ -201,7 +202,53 @@ class PanelWidget extends PanelMenu.Button {
     // Once this is done, the actual code from the callback should follow
     // here.
     this._controller.apiProxy.GetTodaysFactsRemote(_refresh.bind(this));
+
+    this._controller.apiProxy.GetFactsRemote(this._startOfWeek(),
+                                             this._endOfWeek(),
+                                             "",
+                                             ([response], err) => {
+	let facts = [];
+
+	if (err) {
+		log(err);
+	} else if (response.length > 0) {
+		facts = Stuff.fromDbusFacts(response);
+	}
+
+	let totalWeek = 0;
+	for (var fact of facts) {
+		totalWeek += fact.delta;
+	}
+
+	this.setWeekTimeDone(totalWeek);
+    });
+
     return GLib.SOURCE_CONTINUE;
+    }
+
+    /**
+     * Get begin of current week.
+     */
+    _startOfWeek() {
+        var dt = new Date(); // current date of week
+        var currentWeekDay = dt.getDay();
+        var lessDays = currentWeekDay == 0 ? 6 : currentWeekDay - 1;
+        var wkStart = new Date(new Date(dt).setDate(dt.getDate() - lessDays));
+        wkStart.setUTCHours(0,0,0,0)
+        return Math.floor(wkStart.getTime() / 1000)
+    }
+
+    /**
+     * Get end of current week.
+     */
+    _endOfWeek() {
+        var dt = new Date(); // current date of week
+        var currentWeekDay = dt.getDay();
+        var lessDays = currentWeekDay == 0 ? 6 : currentWeekDay - 1;
+        var wkStart = new Date(new Date(dt).setDate(dt.getDate() - lessDays));
+        var wkEnd = new Date(new Date(wkStart).setDate(wkStart.getDate() + 6));
+        wkEnd.setUTCHours(23, 59, 59, 0);
+        return Math.floor(wkEnd.getTime() / 1000);
     }
 
     /**
@@ -237,6 +284,13 @@ class PanelWidget extends PanelMenu.Button {
      */
     setDayTimeDone(totalTime) {
         this.isTimeDone(totalTime, HOURS_PER_DAY * 60 * 60, 'panel-box-daydone');
+    }
+
+    /**
+     * Change style when week is complete.
+     */
+    setWeekTimeDone(totalTime) {
+        this.isTimeDone(totalTime, DAYS_PER_WEEK * HOURS_PER_DAY * 60 * 60, 'panel-box-weekdone');
     }
 
     /**
