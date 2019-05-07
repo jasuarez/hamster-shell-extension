@@ -14,7 +14,7 @@ TL;DR
 #. Check and if needed bump Gnome Shell compatibility in ``metadata.json``.
 #. Commit your changes and run ``make dist``.
 #. Go to ``https://extensions.gnome.org/upload/`` and upload the generated file
-   ``contact@projecthamster.org.zip``.
+   ``jasuarez@projecthamster.org.zip``.
 #. You can check the review progress at ``https://extensions.gnome.org/review/``.
 
 Long Version
