@@ -55,7 +55,7 @@ clean-test-docs:
 $(BUILDDIR):
 	mkdir -p $@
 
-collect:
+collect: $(BUILDDIR)
 	cp -R extension/* $(BUILDDIR)
 	cp -R data/* $(BUILDDIR)
 
@@ -76,7 +76,8 @@ dist: compile
 # We need to do this like this as 'zip' always uses the cwd as archive root.
 # And for the extension to work extension.js etc. need to be at the root.
 	mkdir -p $(DISTDIR);
-	cd $(BUILDDIR); tar -czf ../dist/contact@projecthamster.org.tgz *
+	cd $(BUILDDIR); zip -rq ../dist/jasuarez@projecthamster.org.zip ./*
+	cd $(BUILDDIR); tar -czf ../dist/jasuarez@projecthamster.org.tgz *
 	@ls -l dist
 
 docs:
