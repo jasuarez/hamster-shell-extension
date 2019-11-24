@@ -13,6 +13,16 @@
             <description>Sets the panel appearance. 0 - label, 1 - icon, 2 - label and icon.</description>
         </key>
 
+        <key name="enable-custom-dbus" type="b">
+          <default>false</default>
+          <summary>Use custom D-Bus connection.</summary>
+        </key>
+
+        <key name="custom-dbus" type="s">
+          <default>"unix:path=/tmp/.dbus/bus"</default>
+          <summary>Custom D-Bus to connect.</summary>
+        </key>
+
         <key name="enable-work-done" type="b">
             <default>false</default>
             <summary>Enable extension colors when daily/weekly work is done.</summary>

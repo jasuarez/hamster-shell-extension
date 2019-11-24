@@ -102,9 +102,10 @@ class Controller {
     constructor(extensionMeta) {
 	let dateMenu = Main.panel.statusArea.dateMenu;
 
+        this.settings = ExtensionUtils.getSettings();
         this.extensionMeta = extensionMeta;
+        this.dbusConnection = null;
         this.panelWidget = null;
-        this.settings = null;
         this.placement = 0;
         this.apiProxy = null;
         this.windowsProxy = null;
@@ -125,17 +126,43 @@ class Controller {
      */
     enable() {
         this.shouldEnable = true;
-        new ApiProxy(Gio.DBus.session, 'org.gnome.Hamster', '/org/gnome/Hamster',
-                     function(proxy) {
-			 this.apiProxy = proxy;
-			 this.deferred_enable();
-                     }.bind(this));
-        new WindowsProxy(Gio.DBus.session, "org.gnome.Hamster.WindowServer",
-			 "/org/gnome/Hamster/WindowServer",
-			 function(proxy) {
-			     this.windowsProxy = proxy;
-			     this.deferred_enable();
-			 }.bind(this));
+        this.run_enable();
+    }
+
+    run_enable() {
+        if (this.settings.get_boolean("enable-custom-dbus")) {
+            Gio.DBusConnection.new_for_address(this.settings.get_string("custom-dbus"),
+                                               Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION, null, null,
+                                               function(connection) {
+                                                   this.dbusConnection = connection;
+                                                   new ApiProxy(this.dbusConnection,
+                                                                'org.gnome.Hamster',
+                                                                '/org/gnome/Hamster',
+                                                                function(proxy) {
+                                                                    this.apiProxy = proxy;
+                                                                    this.deferred_enable();
+                                                                }.bind(this));
+                                                   new WindowsProxy(this.dbusConnection,
+                                                                    'org.gnome.Hamster.WindowServer',
+                                                                    '/org/gnome/Hamster/WindowServer',
+                                                                    function(proxy) {
+                                                                        this.windowsProxy = proxy;
+                                                                        this.deferred_enable();
+                                                                    }.bind(this));
+                                               }.bind(this));
+        } else {
+            this.dbusConnection = Gio.DBus.session;
+            new ApiProxy(this.dbusConnection, 'org.gnome.Hamster', '/org/gnome/Hamster',
+                         function(proxy) {
+			                 this.apiProxy = proxy;
+                             this.deferred_enable();
+                         }.bind(this));
+            new WindowsProxy(this.dbusConnection, 'org.gnome.Hamster.WindowServer', '/org/gnome/Hamster/WindowServer',
+			                 function(proxy) {
+			                     this.windowsProxy = proxy;
+			                     this.deferred_enable();
+			                 }.bind(this));
+        }
     }
 
     deferred_enable() {
@@ -144,7 +171,6 @@ class Controller {
         if (!this.shouldEnable || !this.apiProxy || !this.windowsProxy)
             return;
 
-        this.settings = ExtensionUtils.getSettings();
         this.panelWidget = new PanelWidget(this);
         this.placement = this.settings.get_int("panel-placement");
 
@@ -158,10 +184,12 @@ class Controller {
 	    /* jshint validthis: true */
             global.log(_("hamster-shell-extension: 'hamster-service' not running. Shutting down."));
             Main.notify(_("hamster-shell-extension: 'hamster-service' not running. Shutting down."));
-            this.disable();
+            this.run_disable();
         }
 
         function windowsProxy_appeared_callback() {
+            global.log(_("hamster-shell-extension: 'hamster-windows-service' running again.. Shutting up."));
+            this.run_enable();
         }
 
         function windowsProxy_vanished_callback() {
@@ -172,13 +200,13 @@ class Controller {
         }
 
         // Set-up watchers that watch for required dbus services.
-        let dbus_watcher = Gio.bus_watch_name(Gio.BusType.SESSION, 'org.gnome.Hamster',
-					      Gio.BusNameWatcherFlags.NONE, apiProxy_appeared_callback.bind(this),
-					      apiProxy_vanished_callback.bind(this));
+        let dbus_watcher = Gio.bus_watch_name_on_connection(this.dbusConnection, 'org.gnome.Hamster',
+					                    Gio.BusNameWatcherFlags.NONE, apiProxy_appeared_callback.bind(this),
+					                    apiProxy_vanished_callback.bind(this));
 
-        let dbus_watcher_window = Gio.bus_watch_name(Gio.BusType.SESSION, 'org.gnome.Hamster.WindowServer',
-						     Gio.BusNameWatcherFlags.NONE, windowsProxy_appeared_callback.bind(this),
-						     windowsProxy_vanished_callback.bind(this));
+        let dbus_watcher_window = Gio.bus_watch_name_on_connection(this.dbusConnection, 'org.gnome.Hamster.WindowServer',
+						                   Gio.BusNameWatcherFlags.NONE, windowsProxy_appeared_callback.bind(this),
+						                   windowsProxy_vanished_callback.bind(this));
 
         this.apiProxy.connectSignal('ActivitiesChanged', this.refreshActivities.bind(this));
         this.refreshActivities();
@@ -195,6 +223,10 @@ class Controller {
 
     disable() {
         this.shouldEnable = false;
+        this.run_disable();
+    }
+
+    run_disable() {
         Main.wm.removeKeybinding("show-hamster-dropdown");
 
         global.log('Shutting down hamster-shell-extension.');

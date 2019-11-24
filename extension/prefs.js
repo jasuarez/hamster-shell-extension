@@ -95,13 +95,38 @@ class HamsterSettingsWidget extends Gtk.VBox {
 
 
         label = new Gtk.Label({margin_top: 20});
-        label.set_markup("<b>Show when daily/weekly work is done.</b>");
+        label.set_markup("<b>Use a custom D-BUS connection.</b>");
         label.set_alignment(0, 0.5);
         this.add(label);
 
         vbox = new Gtk.VBox({margin: 10});
         this.add(vbox);
         let sb = new Gtk.Switch();
+        vbox.add(sb);
+        this._settings.bind('enable-custom-dbus', sb, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+
+        label = new Gtk.Label({margin_top: 20});
+        label.set_markup("<b>Custom D-Bus to connect</b>")
+        label.set_alignment(0, 0.5);
+        this.add(label)
+
+        vbox = new Gtk.VBox({margin: 10});
+        this.add(vbox);
+        let entry = new Gtk.Entry()
+        vbox.add(entry)
+        this._settings.bind('custom-dbus', entry, 'text', Gio.SettingsBindFlags.DEFAULT);
+        sb.bind_property('active', entry, 'sensitive', GObject.BindingFlags.SYNC_CREATE);
+
+
+        label = new Gtk.Label({margin_top: 20});
+        label.set_markup("<b>Show when daily/weekly work is done.</b>");
+        label.set_alignment(0, 0.5);
+        this.add(label);
+
+        vbox = new Gtk.VBox({margin: 10});
+        this.add(vbox);
+        sb = new Gtk.Switch();
         vbox.add(sb);
         this._settings.bind('enable-work-done', sb, 'active', Gio.SettingsBindFlags.DEFAULT);
 
@@ -140,9 +165,9 @@ class HamsterSettingsWidget extends Gtk.VBox {
 
         vbox = new Gtk.VBox({margin: 10});
         this.add(vbox);
-        let entry = new Gtk.Entry({margin_bottom: 10,
-                                   margin_top: 5,
-                                   text: this._settings.get_strv("show-hamster-dropdown")[0]});
+        entry = new Gtk.Entry({margin_bottom: 10,
+                               margin_top: 5,
+                               text: this._settings.get_strv("show-hamster-dropdown")[0]});
         vbox.add(entry);
         entry.connect('changed', this._onHotkeyChange.bind(this));
 
