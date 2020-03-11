@@ -171,7 +171,7 @@ class HamsterSettingsWidget extends Gtk.VBox {
         vbox.add(entry);
         entry.connect('changed', this._onHotkeyChange.bind(this));
 
-        vbox.add(new Gtk.Label({label: "Reload gnome shell after updating prefs (alt+f2 > r)",
+        vbox.add(new Gtk.Label({label: "Disable and re-enable the extension after updating the prefs",
                                 margin_top: 70}));
 
         let version_text = ExtensionUtils.getCurrentExtension().metadata.version;

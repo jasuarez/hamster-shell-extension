@@ -87,8 +87,6 @@ const WindowsProxyIface = ['',
 let WindowsProxy = Gio.DBusProxy.makeProxyWrapper(WindowsProxyIface);
 
 
-
-
 /**
  * Create the controller instance that handles extension context.
  *
@@ -105,13 +103,17 @@ class Controller {
         this.settings = ExtensionUtils.getSettings();
         this.extensionMeta = extensionMeta;
         this.dbusConnection = null;
+        this.dbusConnectionMaxRetries = 30;
         this.panelWidget = null;
         this.placement = 0;
         this.apiProxy = null;
         this.windowsProxy = null;
-        // ``shouldEnable`` indicates if the 'magic' enable function has been called or not.
-        // for details please see: https://github.com/projecthamster/hamster-shell-extension/pull/239
-        this.shouldEnable = false;
+        this.apiProxy_watcher = 0;
+        this.windowsProxy_watcher = 0;
+        this.apiProxyActive = false;
+        this.windowsProxyActive = false;
+        this.apiProxyActivitiesChangedId = 0;
+        this.extensionEnabled = false;
     }
 
     /**
@@ -125,117 +127,146 @@ class Controller {
      *  the actual startup code is refered to ``deferred_enable``.
      */
     enable() {
-        this.shouldEnable = true;
+        this.extensionEnabled = true;
         this.run_enable();
     }
 
     run_enable() {
+        if (!this.extensionEnabled)
+            return;
+
         if (this.settings.get_boolean("enable-custom-dbus")) {
             Gio.DBusConnection.new_for_address(this.settings.get_string("custom-dbus"),
-                                               Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION, null, null,
+                                               Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT |
+                                               Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
+                                               null, null,
                                                function(connection) {
                                                    this.dbusConnection = connection;
+                                                   if (!this.dbusConnection.get_unique_name()) {
+                                                       global.log("hamster-shell-extension: connection is not ready ; retrying in 10 seconds");
+                                                       GLib.timeout_add_seconds(0, 10,
+                                                                                function() {
+                                                                                    this.dbusConnectionMaxRetries = this.dbusConnectionMaxRetries - 1;
+                                                                                    if (this.dbusConnectionMaxRetries > 0)
+                                                                                        this.run_enable();
+                                                                                    return 0;
+                                                                                }.bind(this));
+                                                       return;
+                                                   }
                                                    new ApiProxy(this.dbusConnection,
                                                                 'org.gnome.Hamster',
                                                                 '/org/gnome/Hamster',
                                                                 function(proxy) {
-                                                                    this.apiProxy = proxy;
+	                                                            this.apiProxy = proxy;
+                                                                    this.apiProxyActive = true;
                                                                     this.deferred_enable();
                                                                 }.bind(this));
                                                    new WindowsProxy(this.dbusConnection,
                                                                     'org.gnome.Hamster.WindowServer',
                                                                     '/org/gnome/Hamster/WindowServer',
-                                                                    function(proxy) {
-                                                                        this.windowsProxy = proxy;
-                                                                        this.deferred_enable();
-                                                                    }.bind(this));
+			                                            function(proxy) {
+			                                                this.windowsProxy = proxy;
+                                                                        this.windowsProxyActive = true;
+			                                                this.deferred_enable();
+			                                            }.bind(this));
                                                }.bind(this));
+
         } else {
             this.dbusConnection = Gio.DBus.session;
             new ApiProxy(this.dbusConnection, 'org.gnome.Hamster', '/org/gnome/Hamster',
                          function(proxy) {
-			                 this.apiProxy = proxy;
+	                     this.apiProxy = proxy;
+                             this.apiProxyActive = true;
                              this.deferred_enable();
                          }.bind(this));
             new WindowsProxy(this.dbusConnection, 'org.gnome.Hamster.WindowServer', '/org/gnome/Hamster/WindowServer',
-			                 function(proxy) {
-			                     this.windowsProxy = proxy;
-			                     this.deferred_enable();
-			                 }.bind(this));
+			     function(proxy) {
+			         this.windowsProxy = proxy;
+                                 this.windowsProxyActive = true;
+			         this.deferred_enable();
+			     }.bind(this));
         }
     }
 
     deferred_enable() {
         // Make sure ``enable`` is 'finished' and ``disable`` has not been
         // called in between.
-        if (!this.shouldEnable || !this.apiProxy || !this.windowsProxy)
+        if (!this.extensionEnabled || !this.apiProxyActive || !this.windowsProxyActive)
             return;
 
-        this.panelWidget = new PanelWidget(this);
-        this.placement = this.settings.get_int("panel-placement");
+        this._addPanelWidget();
+        this._setWatchers();
+        
+        this.refreshActivities();
 
-        this._placeWidget(this.placement, this.panelWidget);
+    }
 
+    disable() {
+        global.log('Shutting down hamster-shell-extension.');
+        this.extensionEnabled = false;
+        this.run_disable();
+        this.apiProxyActive = false;
+        this.windowsProxyActive = false;
+        this.apiProxy = null;
+        this.windowsProxy = null;
+        this.dbusConnectionMaxRetries = 30;
+    }
+
+    run_disable() {
+        this._removePanelWidget();
+    }
+
+    _setWatchers() {
         // Callbacks that handle appearing/vanishing dbus services.
         function apiProxy_appeared_callback() {
+            global.log(_("hamster-shell-extension: 'hamster-service' running again.. Shutting up."));
+            this.apiProxyActive = true;
+            this.deferred_enable();
         }
 
         function apiProxy_vanished_callback() {
 	    /* jshint validthis: true */
             global.log(_("hamster-shell-extension: 'hamster-service' not running. Shutting down."));
             Main.notify(_("hamster-shell-extension: 'hamster-service' not running. Shutting down."));
+            this.apiProxyActive = false;
             this.run_disable();
         }
 
         function windowsProxy_appeared_callback() {
             global.log(_("hamster-shell-extension: 'hamster-windows-service' running again.. Shutting up."));
-            this.run_enable();
+            this.windowsProxyActive = true;
+            this.deferred_enable();
         }
 
         function windowsProxy_vanished_callback() {
 	    /* jshint validthis: true */
             global.log(_("hamster-shell-extension: 'hamster-windows-service' not running. Shutting down."));
             Main.notify(_("hamster-shell-extension: 'hamster-windows-service' not running. Shutting down."));
-            this.disable();
+            this.windowsProxyActive = false;
+            this.run_disable();
         }
 
         // Set-up watchers that watch for required dbus services.
-        let dbus_watcher = Gio.bus_watch_name_on_connection(this.dbusConnection, 'org.gnome.Hamster',
-					                    Gio.BusNameWatcherFlags.NONE, apiProxy_appeared_callback.bind(this),
-					                    apiProxy_vanished_callback.bind(this));
+        if (!this.apiProxy_watcher)
+            this.apiProxy_watcher = Gio.bus_watch_name_on_connection(this.dbusConnection, 'org.gnome.Hamster',
+	                                                             Gio.BusNameWatcherFlags.NONE, apiProxy_appeared_callback.bind(this),
+	 				                             apiProxy_vanished_callback.bind(this));
 
-        let dbus_watcher_window = Gio.bus_watch_name_on_connection(this.dbusConnection, 'org.gnome.Hamster.WindowServer',
-						                   Gio.BusNameWatcherFlags.NONE, windowsProxy_appeared_callback.bind(this),
-						                   windowsProxy_vanished_callback.bind(this));
-
-        this.apiProxy.connectSignal('ActivitiesChanged', this.refreshActivities.bind(this));
-        this.refreshActivities();
-
-        Main.panel.menuManager.addMenu(this.panelWidget.menu);
-        Main.wm.addKeybinding("show-hamster-dropdown",
-			      this.panelWidget._settings,
-			      Meta.KeyBindingFlags.NONE,
-			      // Since Gnome 3.16, Shell.KeyBindingMode is replaced by Shell.ActionMode
-			      Shell.KeyBindingMode ? Shell.KeyBindingMode.ALL : Shell.ActionMode.ALL,
-			      this.panelWidget.toggle.bind(this.panelWidget)
-			     );
+        if (!this.windowsProxy_watcher)
+            this.windowsProxy_watcher = Gio.bus_watch_name_on_connection(this.dbusConnection, 'org.gnome.Hamster.WindowServer',
+	 					                         Gio.BusNameWatcherFlags.NONE, windowsProxy_appeared_callback.bind(this),
+	 					                         windowsProxy_vanished_callback.bind(this));
     }
-
-    disable() {
-        this.shouldEnable = false;
-        this.run_disable();
-    }
-
-    run_disable() {
-        Main.wm.removeKeybinding("show-hamster-dropdown");
-
-        global.log('Shutting down hamster-shell-extension.');
-        this._removeWidget(this.placement);
-        Main.panel.menuManager.removeMenu(this.panelWidget.menu);
-        this.panelWidget.destroy();
-        this.panelWidget = null;
-        this.apiProxy = null;
-        this.windowsProxy = null;
+    
+    _unsetWatchers() {
+        if (this.apiProxy_watcher) {
+            Gio.bus_unwatch_name(this.apiProxy_watcher);
+            this.apiProxy_watcher = 0;
+        }
+        if (this.windowsProxy_watcher) {
+            Gio.bus_unwatch_name(this.windowsProxy_watcher);
+            this.windowsProxy_watcher = 0;
+        }
     }
 
     /**
@@ -250,8 +281,39 @@ class Controller {
         this.apiProxy.GetActivitiesRemote("", function([response], err) {
             this.runningActivitiesQuery = false;
             this.activities = response;
-            // global.log('ACTIVITIES HAMSTER: ', this.activities);
         }.bind(this));
+    }
+
+    _addPanelWidget() {
+        if (!this.panelWidget) {
+            this.panelWidget = new PanelWidget(this);
+            this.placement = this.settings.get_int("panel-placement");
+            this._placeWidget(this.placement, this.panelWidget);
+
+            Main.panel.menuManager.addMenu(this.panelWidget.menu);
+
+            Main.wm.addKeybinding("show-hamster-dropdown",
+			          this.panelWidget._settings,
+			          Meta.KeyBindingFlags.NONE,
+			          // Since Gnome 3.16, Shell.KeyBindingMode is replaced by Shell.ActionMode
+			          Shell.KeyBindingMode ? Shell.KeyBindingMode.ALL : Shell.ActionMode.ALL,
+			          this.panelWidget.toggle.bind(this.panelWidget)
+			         );
+            this.apiProxyActivitiesChangedId = this.apiProxy.connectSignal('ActivitiesChanged', this.refreshActivities.bind(this));
+        }
+    }
+
+    _removePanelWidget() {
+        if (this.panelWidget) {
+            Main.wm.removeKeybinding("show-hamster-dropdown");
+            this._removeWidget(this.placement);
+            Main.panel.menuManager.removeMenu(this.panelWidget.menu);
+            this.panelWidget.destroy();
+            this.panelWidget = null;
+
+            this.apiProxy.disconnectSignal(this.apiProxyActivitiesChangedId);
+            this.apiProxyActivitiesChangedId = 0;
+        }
     }
 
     /**
@@ -296,8 +358,6 @@ class Controller {
             let activitiesMenu = Main.panel._leftBox.get_children()[0].get_children()[0].get_children()[0].get_children()[0];
             activitiesMenu.set_text(this._activitiesText);
             Main.panel._leftBox.remove_actor(this.panelWidget.container);
-        } else {
-            Main.panel._rightBox.remove_actor(this.panelWidget.container);
         }
     }
 }

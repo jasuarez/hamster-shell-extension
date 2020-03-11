@@ -104,7 +104,7 @@ class OngoingFactEntry extends St.Entry {
         // [FIXME]
         // To limit the scope of the PR we did not refactor this bit too much.
         // We should however take another look at the Instance attributes and
-        // see what is really needed and if their naming is apropriate.
+        // see what really is needed and if their naming is apropriate.
         let text = this.get_text().toLowerCase();
         let starttime = "";
         let activitytext = text;
