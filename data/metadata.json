@@ -11,7 +11,8 @@
     "settings-schema": "org.gnome.shell.extensions.project-hamster",
     "shell-version": [
         "3.32",
-        "3.34"
+        "3.34",
+        "3.36"
     ],
     "url": "https://github.com/jasuarez/hamster-shell-extension.git",
     "uuid": "jasuarez@projecthamster.org",
